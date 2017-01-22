@@ -1,6 +1,6 @@
-
-export default class LudicAppComponent {
+import LudicAppComponent from './components/ludicAppComponent'
+export default class LudicVue {
   static install(Vue){
-    console.log(Vue);
+    Vue.component('ludic-app', LudicAppComponent)
   }
 }
