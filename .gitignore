@@ -1,0 +1,6 @@
+# npm stuff
+node_modules
+npm-debug.log
+
+# mac stuff
+.DS*
