@@ -1,7 +1,7 @@
 <template lang="html">
   <div class="ludic-app-container">
     <slot>
-      <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :width="width" :height="height" :tabindex="tabindex"></canvas>
+      <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
     </slot>
   </div>
 </template>
@@ -23,6 +23,7 @@ export default {
     // width and height of the canvas in the container
     width: {type: Number, default: 600},
     height: {type: Number, default: 338},
+    fullWindow: {type: Boolean, default: false},
     // optionally set the tabindex used by the canvas element
     tabindex: {type: String, default: '1'},
     // optionally choose not to automatically run the app after its instantiated
@@ -32,6 +33,8 @@ export default {
     return {
       defaultConfig: {
       },
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
     }
   },
   computed: {
@@ -41,23 +44,32 @@ export default {
         el: this.$refs.canvas,
       },this.defaultConfig,this.config)
     },
+    c_width(){
+      return this.fullWindow ? this.windowWidth : this.width
+    },
+    c_height(){
+      return this.fullWindow ? this.windowHeight : this.height
+    },
   },
   mounted(){
-    this._app = new this.app(this.cfg);
+    window.addEventListener('resize', this.onResize)
+    try {
+      this._app = new this.app(this.cfg);
+      // this._app = Reflect.construct(this.app, [this.cfg])
+    } catch (e) {
+      console.error('e',e)
+    }
     this.$emit('app-ready', this._app);
     if(this.runApp){
-      this._app.run(this.defaultUpdate);
+      this._app.run(this.update);
     }
   },
   methods: {
-    defaultUpdate(...args){
-      if(this.update){
-        this.update(...args);
-      } else {
-        this._app.update(...args)
-      }
+    onResize(){
+      this.windowWidth = window.innerWidth
+      this.windowHeight = window.innerHeight
     },
-  }
+  },
 }
 </script>
 
@@ -67,5 +79,11 @@ export default {
   margin: auto;
   outline: none;
   border: 1px solid black;
+}
+.ludic-canvas.full-window {
+  position: fixed;
+  height: 100vh;
+  width: 100vw;
+  border: none;
 }
 </style>

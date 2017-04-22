@@ -1402,6 +1402,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       /* harmony import */
       var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(0);
       /* harmony import */var __WEBPACK_IMPORTED_MODULE_1__keyCodeMap__ = __webpack_require__(24);
+      /* harmony import */var __WEBPACK_IMPORTED_MODULE_2__gamepadController__ = __webpack_require__(27);
       var _typeof = typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol" ? function (obj) {
         return typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
       } : function (obj) {
@@ -1459,14 +1460,24 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
           // TODO: refactor config
           this.config = {};
 
+          this.inputControllers = [];
+
           this.initKeys();
           this.initMouse();
-          this.initGamepads();
+          this.gpController = new __WEBPACK_IMPORTED_MODULE_2__gamepadController__["a" /* default */]();
+          // this.initGamepads();
         }
 
-        // input methods
-
         _createClass(InputController, [{
+          key: 'addInputController',
+          value: function addInputController(inputController) {
+            inputController.install(this);
+            this.inputControllers.push(inputController);
+          }
+
+          // input methods
+
+        }, {
           key: 'addInputListener',
           value: function addInputListener(listener) {
             listeners.push(listener);
@@ -1514,21 +1525,113 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             // object for all key states
             this.allKeys = {};
 
-            this.canvas.addEventListener('keydown', function (evt) {
+            var func = function func(evt) {
               // evt.preventDefault();
               // this.onKeyDown(this.canvas,evt);
-              _this.onKeyEvent(_this.canvas, evt);
-            }, false);
+              // this.onKeyEvent(evt);
+              var l;
+              var down = evt.type === 'keydown';
+              var dir = down ? 'down' : 'up';
 
-            this.canvas.addEventListener('keyup', function (evt) {
-              // evt.preventDefault();
-              // this.onKeyUp(this.canvas,evt);
-              _this.onKeyEvent(_this.canvas, evt);
-            }, false);
+              // give the event a list of all keys states
+              _this.allKeys[evt.keyCode] = _this.allKeys[evt.key] = down;
+              evt.allKeys = _this.allKeys;
+
+              if (_this.config.logAllKeys) {
+                console.log(evt.keyCode);
+              }
+              _this.dispatchEvent(_this, _this.keyHandler, evt, down, dir);
+            };
+
+            this.canvas.addEventListener('keydown', func, false);
+            this.canvas.addEventListener('keyup', func, false);
+          }
+        }, {
+          key: 'dispatchEvent',
+          value: function dispatchEvent(thisArg, handler, event) {
+            for (var _len = arguments.length, args = Array(_len > 3 ? _len - 3 : 0), _key2 = 3; _key2 < _len; _key2++) {
+              args[_key2 - 3] = arguments[_key2];
+            }
+
+            for (var listener, i = listeners.length - 1; i >= 0; i--) {
+              listener = listeners[i];
+              if (!listener || !listener.enabled) {
+                continue;
+              }
+              handler.call.apply(handler, [thisArg, listener, event].concat(args));
+            }
+          }
+        }, {
+          key: 'keyHandler',
+          value: function keyHandler(l, evt, down, dir) {
+            var cfg = l.keyConfig;
+            var key = cfg[evt.keyCode];
+            var binder = l.binder || l;
+            if (key) {
+              if ((typeof key === 'undefined' ? 'undefined' : _typeof(key)) === 'object' || Array.isArray(key)) {
+                var keys = void 0;
+                // make array out of single object, treat everything like an array
+                if (Array.isArray(key)) {
+                  keys = key;
+                } else {
+                  keys = [key];
+                }
+
+                // loop through all key configs
+                var _iteratorNormalCompletion = true;
+                var _didIteratorError = false;
+                var _iteratorError = undefined;
+
+                try {
+                  for (var _iterator = keys[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var _key3 = _step.value;
+
+                    var modifiers = false;
+                    var direction = !_key3.hasOwnProperty('direction') || _key3.direction === dir || _key3.direction === 'both';
+                    var method = _key3.hasOwnProperty('method') && _key3.method;
+                    _key3._once = down ? _key3._once : false;
+
+                    // logic for modifiers
+                    if (!!_key3.shiftKey == evt.shiftKey && !!_key3.altKey == evt.altKey && !!_key3.ctrlKey == evt.ctrlKey) {
+                      modifiers = true;
+                    }
+
+                    if (method && modifiers && direction && !_key3._once) {
+                      binder = _key3.binder || binder;
+                      var b = this._execCommand(l, method, binder, down, evt);
+                      _key3._once = _key3.once && down;
+                    }
+                  }
+                } catch (err) {
+                  _didIteratorError = true;
+                  _iteratorError = err;
+                } finally {
+                  try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                      _iterator.return();
+                    }
+                  } finally {
+                    if (_didIteratorError) {
+                      throw _iteratorError;
+                    }
+                  }
+                }
+              } else {
+                console.warn('InputController: Unsupported key config type \'' + key + '\'');
+              }
+            }
+            // else {
+            //   console.log('no config for keycode', evt.keyCode, key);
+            // }
+
+            // check for if listener wants the only control
+            // if(l.stopPropagation){
+            //   break;
+            // }
           }
         }, {
           key: 'onKeyEvent',
-          value: function onKeyEvent(canvas, evt) {
+          value: function onKeyEvent(evt) {
             // console.log(evt);
             var l;
             var down = evt.type === 'keydown';
@@ -1546,78 +1649,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
               if (!l || !l.enabled) {
                 continue;
               }
-
-              var cfg = l.keyConfig;
-              var key = cfg[evt.keyCode];
-              var binder = l.binder || l;
-              if (key) {
-                if ((typeof key === 'undefined' ? 'undefined' : _typeof(key)) === 'object' || Array.isArray(key)) {
-                  var keys = void 0;
-                  // make array out of single object, treat everything like an array
-                  if (Array.isArray(key)) {
-                    keys = key;
-                  } else {
-                    keys = [key];
-                  }
-
-                  // loop through all key configs
-                  var _iteratorNormalCompletion = true;
-                  var _didIteratorError = false;
-                  var _iteratorError = undefined;
-
-                  try {
-                    for (var _iterator = keys[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var _key2 = _step.value;
-
-                      var modifiers = false;
-                      var direction = !_key2.hasOwnProperty('direction') || _key2.direction === dir || _key2.direction === 'both';
-                      var method = _key2.hasOwnProperty('method') && _key2.method;
-                      _key2._once = down ? _key2._once : false;
-
-                      // logic for modifiers
-                      if (!!_key2.shiftKey == evt.shiftKey && !!_key2.altKey == evt.altKey && !!_key2.ctrlKey == evt.ctrlKey) {
-                        modifiers = true;
-                      }
-
-                      if (method && modifiers && direction && !_key2._once) {
-                        binder = _key2.binder || binder;
-                        var b = this._execCommand(l, method, binder, down, evt);
-                        _key2._once = _key2.once && down;
-                      }
-                    }
-                  } catch (err) {
-                    _didIteratorError = true;
-                    _iteratorError = err;
-                  } finally {
-                    try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
-                      }
-                    } finally {
-                      if (_didIteratorError) {
-                        throw _iteratorError;
-                      }
-                    }
-                  }
-                } else {
-                  console.warn('InputController: Unsupported key config type \'' + key + '\'');
-                }
-              }
-              // else {
-              //   console.log('no config for keycode', evt.keyCode, key);
-              // }
-
-              // check for if listener wants the only control
-              if (l.stopPropagation) {
-                break;
-              }
             }
           }
         }, {
           key: '_execCommand',
           value: function _execCommand(listener, method, binder) {
-            for (var _len = arguments.length, args = Array(_len > 3 ? _len - 3 : 0), _key3 = 3; _key3 < _len; _key3++) {
-              args[_key3 - 3] = arguments[_key3];
+            for (var _len2 = arguments.length, args = Array(_len2 > 3 ? _len2 - 3 : 0), _key4 = 3; _key4 < _len2; _key4++) {
+              args[_key4 - 3] = arguments[_key4];
             }
 
             if (typeof method === 'string') {
@@ -1703,257 +1741,12 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
           //  -- gamepad
 
-        }, {
-          key: 'initGamepads',
-          value: function initGamepads() {
-            var _this2 = this;
 
-            this.gamepads = {};
-            this.lastButtonStates = [[], // gamepad index 0
-            [], // gamepad index 1
-            [], // gamepad index 2
-            [] // gamepad index 3
-            ];
-            this.lastAxisStates = [[], // gamepad index 0
-            [], // gamepad index 1
-            [], // gamepad index 2
-            [] // gamepad index 3
-            ];
-            window.addEventListener("gamepadconnected", function (e) {
-              console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.", e.gamepad.index, e.gamepad.id, e.gamepad.buttons.length, e.gamepad.axes.length);
-              console.log(e.gamepad);
-              _this2.getGamepads();
-            });
-            window.addEventListener("gamepaddisconnected", function (e) {
-              console.log('Gamepad disconnected: ', e);
-              _this2.getGamepads();
-            });
-
-            window.addEventListener('gamepadbuttondown', function (e) {
-              console.log('gamepad button down: ', e);
-            });
-
-            window.addEventListener('gamepadbuttonup', function (e) {
-              console.log('gamepad button up: ', e);
-            });
-          }
-        }, {
-          key: 'getGamepads',
-          value: function getGamepads() {
-            var gps = navigator.getGamepads() || [];
-            var gp;
-            for (var i = 0; i < gps.length; i++) {
-              gp = gps[i];
-              if (gp) {
-                this.gamepads[gp.index] = gp;
-              }
-            }
-            return this.gamepads;
-          }
         }, {
           key: 'update',
           value: function update() {
-            this._stepGamepads();
-          }
-        }, {
-          key: '_stepGamepads',
-          value: function _stepGamepads() {
-            var _this3 = this;
-
-            var gps = this.getGamepads();
-            var gp;
-            for (var i in gps) {
-              gp = gps[i]; // gamepad instance from api
-              if (gp) {
-
-                // for each gamepad that the api reads; poll the state of each button,
-                //  sending an event when pressed
-                gp.buttons.forEach(function (b, ix) {
-                  // get the last known state of the button
-                  var lastState = _this3.getLastState(i, ix);
-                  b.index = ix; // tell the button what it's index is
-                  b.lastState = lastState;
-
-                  if (b.pressed) {
-                    // if pressed, create a button event and set the buttons last known state
-                    _this3.gamepadButtonEvent(gp, b, true);
-                    _this3.setLastState(i, ix, true);
-                  } else {
-                    if (lastState) {
-                      // if the button is not pressed but its last state was pressed, create a 'button up' event
-                      if (lastState.pressed) {
-                        _this3.gamepadButtonEvent(gp, b, false);
-                      }
-                    }
-                    // set the buttons last known state for not pressed
-                    _this3.setLastState(i, ix, false);
-                  }
-                });
-
-                // do the same thing for each of the axis (analog sticks)
-                // loop through each and poll state
-                gp.axes.forEach(function (value, axis) {
-                  // get the deadZone associated with each axis
-                  var dz = _this3.getDeadZone(axis);
-                  // get the last known state for the axis
-                  var lastState = _this3.getLastAxisState(i, axis);
-
-                  // if the value of the axis is withing the bounds of the deadzone
-                  //  create an axis event
-                  if (value < -dz || value > dz) {
-                    _this3.gamepadAxisEvent(gp, axis, value, false);
-                  } else if (!lastState.zeroed) {
-                    _this3.gamepadAxisEvent(gp, axis, 0, true);
-                  }
-                });
-              } else {
-                console.log('no gamepad!', i);
-              }
-            }
-          }
-        }, {
-          key: 'getLastAxisState',
-          value: function getLastAxisState(gpIndex, axis) {
-            var b = this.lastAxisStates[gpIndex][axis] || { zeroed: true };
-            return b;
-          }
-        }, {
-          key: 'setLastAxisState',
-          value: function setLastAxisState(gpIndex, axis, state) {
-            this.lastAxisStates[gpIndex][axis] = { zeroed: state };
-          }
-        }, {
-          key: 'getDeadZone',
-          value: function getDeadZone(gamepadIndex) {
-            if (gamepadsConfig.hasOwnProperty(gamepadIndex) && gamepadsConfig[gamepadIndex].hasOwnProperty(deadZone)) {
-              return gamepadsConfig[gamepadIndex].deadZone;
-            }
-            return gamepadsAxisDeadZone;
-          }
-        }, {
-          key: 'setDeadZone',
-          value: function setDeadZone(deadZone, gamepadIndex) {
-            if (gamepadIndex !== null && gamepadIndex !== undefined) {
-              if (gamepadsConfig.hasOwnProperty(gamepadIndex)) {
-                gamepadsConfig[gamepadIndex].deadZone = deadZone;
-              } else {
-                gamepadsConfig[gamepadIndex] = { deadZone: deadZone };
-              }
-            } else {
-              gamepadsAxisDeadZone = deadZone;
-            }
-          }
-        }, {
-          key: 'getLastState',
-          value: function getLastState(i, ix) {
-            var b = this.lastButtonStates[i][ix];
-            return b;
-          }
-        }, {
-          key: 'setLastState',
-          value: function setLastState(i, ix, state) {
-            this.lastButtonStates[i][ix] = { pressed: state };
-          }
-        }, {
-          key: 'gamepadButtonEvent',
-          value: function gamepadButtonEvent(gamepad, button, down) {
-            button.id = gamepadMaps[gamepad.id].buttons[button.index];
-            if (button.id) {
-              this.onGamepadButtonEvent(new GamepadButtonEvent(gamepad, button, down));
-            } else {
-              console.log(arguments);
-            }
-          }
-        }, {
-          key: 'onGamepadButtonEvent',
-          value: function onGamepadButtonEvent(evt) {
-            var l;
-            var down = evt.down;
-
-            // if(this.config.logAllKeys){
-            //   console.log(evt.keyCode,evt.keyIdentifier);
-            // }
-            for (var i = listeners.length - 1; i >= 0; i--) {
-              l = listeners[i];
-              if (!l || !l.enabled) {
-                continue;
-              }
-              var func = l[evt.keyIdentifier];
-              if (!func) {
-                continue;
-              }
-              if (l.gamepadIndex >= 0 && l.gamepadIndex !== evt.gamepadIndex) {
-                continue;
-              }
-
-              var bndr = l.binder || l;
-              var b = func.call(bndr, down, evt);
-              if (b === true) {
-                return;
-              }
-              // check for if listener wants the only control
-              if (l.stopPropagation) {
-                break;
-              }
-            }
-            // if(this.config.logUnmappedKeys){
-            //   console.log(evt.keyCode,evt.keyIdentifier,evt.button.value, listeners.length===0?"No listeners":"");
-            // }
-          }
-        }, {
-          key: 'getGamepadMap',
-          value: function getGamepadMap(gamepadId) {
-            return gamepadMaps[gamepadId] || {};
-          }
-        }, {
-          key: 'gamepadAxisEvent',
-          value: function gamepadAxisEvent(gamepad, axisIndex, value, zeroed) {
-            this.setLastAxisState(gamepad.index, axisIndex, zeroed);
-            var gpMap = this.getGamepadMap(gamepad.id);
-            var axis = {};
-            axis.id = gpMap.axes[axisIndex];
-            axis.stick = gpMap.sticks[axis.id];
-            axis.index = axisIndex;
-            axis.value = value;
-            axis.zeroed = zeroed;
-
-            var evt = new GamepadAxisEvent(gamepad, axis);
-            evt.values = {};
-            if (axis.stick === 'leftStick') {
-              evt.values.x = gamepad.getValueByAxisId('lx');
-              evt.values.y = gamepad.getValueByAxisId('ly');
-            } else if (axis.stick === 'rightStick') {
-              evt.values.x = gamepad.getValueByAxisId('rx');
-              evt.values.y = gamepad.getValueByAxisId('ry');
-            }
-
-            this.onGamepadAxis(evt);
-          }
-        }, {
-          key: 'onGamepadAxis',
-          value: function onGamepadAxis(evt) {
-            var l;
-            for (var i = listeners.length - 1; i >= 0; i--) {
-              l = listeners[i];
-              if (!l) {
-                continue;
-              }
-
-              var func = l[evt.stick];
-              if (!func) {
-                continue;
-              }
-              // only fire for correct gamepadIndex
-              if (l.gamepadIndex >= 0 && l.gamepadIndex !== evt.gamepadIndex) {
-                continue;
-              }
-
-              var bndr = l.binder || l;
-              if (func.call(bndr, evt.values.x, evt.values.y, evt) === false) {
-                continue;
-              }
-              return;
-            }
+            // this._stepGamepads();
+            this.gpController.update();
           }
         }]);
 
@@ -2000,25 +1793,25 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       var importKeyConfig = function importKeyConfig(keyConfig) {
         var config = {};
 
-        var _loop = function _loop(_key4) {
-          var mods = stripModifiers(_key4);
-          var _key = _key4;
-          var cfg = keyConfig[_key4];
-          _key4 = __WEBPACK_IMPORTED_MODULE_1__keyCodeMap__["a" /* default */][mods.key] || mods.key;
+        var _loop = function _loop(_key5) {
+          var mods = stripModifiers(_key5);
+          var _key = _key5;
+          var cfg = keyConfig[_key5];
+          _key5 = __WEBPACK_IMPORTED_MODULE_1__keyCodeMap__["a" /* default */][mods.key] || mods.key;
 
           // everything needs to be an array of objects
           if (typeof cfg === 'string' || typeof cfg === 'function') {
-            config[_key4] = [Object.assign({}, { method: cfg }, mods.config)];
+            config[_key5] = [Object.assign({}, { method: cfg }, mods.config)];
           } else if ((typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) === 'object' && !Array.isArray(cfg)) {
-            config[_key4] = [Object.assign({}, mods.config, cfg)];
+            config[_key5] = [Object.assign({}, mods.config, cfg)];
           } else if (Array.isArray(cfg)) {
-            config[_key4] = cfg.map(function (conf) {
+            config[_key5] = cfg.map(function (conf) {
               return Object.assign({}, mods.config, conf);
             });
           } else {
-            console.warn('InputController: Unsupported key config type \'' + (typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) + '\' for \'' + _key4 + '\'', cfg);
+            console.warn('InputController: Unsupported key config type \'' + (typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) + '\' for \'' + _key5 + '\'', cfg);
           }
-          key = _key4;
+          key = _key5;
         };
 
         for (var key in keyConfig) {
@@ -2077,13 +1870,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
             try {
               for (var _iterator2 = avail[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                var _key5 = _step2.value;
+                var _key6 = _step2.value;
 
-                if (_key5 in listener) {
-                  var method = listener[_key5];
+                if (_key6 in listener) {
+                  var method = listener[_key6];
 
                   if (typeof method === 'function') {
-                    this[_key5] = method;
+                    this[_key6] = method;
                   } else if (typeof method === 'string') {
                     console.log(this.keyConfig);
                     var code = method;
@@ -2102,9 +1895,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
                     var arr = this.keyConfig[code];
 
                     if (arr.length === 1) {
-                      this[_key5] = arr[0].method;
+                      this[_key6] = arr[0].method;
                     } else {
-                      console.warn('multiple entries per keycode is not supported at this yet.', _key5, arr, method);
+                      console.warn('multiple entries per keycode is not supported at this yet.', _key6, arr, method);
                     }
                   }
                 }
@@ -2234,40 +2027,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
       InputController.InputEventListener = InputEventListener;
-
-      var GamepadButtonEvent = function GamepadButtonEvent(gamepad, button, down) {
-        _classCallCheck(this, GamepadButtonEvent);
-
-        this.gamepad = gamepad;
-        this.gamepadIndex = gamepad.index;
-        this.button = button;
-        this.down = down;
-        this.type = 'gamepadButtonEvent';
-        this.keyCode = button.index;
-        this.keyIdentifier = button.id;
-      };
-
-      var GamepadAxisEvent = function GamepadAxisEvent(gamepad, axis) {
-        _classCallCheck(this, GamepadAxisEvent);
-
-        this.gamepad = gamepad;
-        this.gamepadIndex = gamepad.index;
-        this.axis = axis;
-        this.stick = axis.stick;
-        this.keyCode = 200 + axis.index;
-        this.keyIdentifier = axis.id;
-        this.values = axis.values;
-        this.type = 'gamepadAxisEvent';
-      };
-
-      Gamepad.prototype.getValueByAxisId = function (axisId) {
-        var gp = gamepadMaps[this.id];
-        var ix = gp.axes.indexOf(axisId);
-        if (ix > -1) {
-          return this.axes[ix];
-        }
-        return;
-      };
 
       /* harmony default export */exports["a"] = InputController;
 
@@ -4118,6 +3877,376 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
       // vectors
 
+
+      /***/
+    },
+    /* 27 */
+    /***/function (module, exports, __webpack_require__) {
+
+      "use strict";
+
+      var _createClass = function () {
+        function defineProperties(target, props) {
+          for (var i = 0; i < props.length; i++) {
+            var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+          }
+        }return function (Constructor, protoProps, staticProps) {
+          if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+        };
+      }();
+
+      function _classCallCheck(instance, Constructor) {
+        if (!(instance instanceof Constructor)) {
+          throw new TypeError("Cannot call a class as a function");
+        }
+      }
+
+      var ps4Mapping = {
+        buttons: ['cross', 'circle', 'square', 'triangle', 'l1', 'r1', 'l2', 'r2', 'extra', 'start', 'l3', 'r3', 'up', 'down', 'left', 'right', 'home', 'select'],
+        axes: ['lx', 'ly', 'rx', 'ry'],
+        sticks: {
+          lx: 'leftStick',
+          ly: 'leftStick',
+          rx: 'rightStick',
+          ry: 'rightStick'
+        }
+      };
+
+      var gamepadMaps = {
+        'Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 05c4)': ps4Mapping // ps4 controller
+      };
+
+      var gamepadsAxisDeadZone = 0.08;
+      var gamepadsConfig = {};
+
+      var GamepadController = function () {
+        function GamepadController() {
+          _classCallCheck(this, GamepadController);
+
+          this.initGamepads();
+        }
+
+        _createClass(GamepadController, [{
+          key: 'install',
+          value: function install(inputController) {
+            this.inputController = inputController;
+          }
+        }, {
+          key: 'initGamepads',
+          value: function initGamepads() {
+            var _this = this;
+
+            this.gamepads = {};
+            this.lastButtonStates = [[], // gamepad index 0
+            [], // gamepad index 1
+            [], // gamepad index 2
+            [] // gamepad index 3
+            ];
+            this.lastAxisStates = [[], // gamepad index 0
+            [], // gamepad index 1
+            [], // gamepad index 2
+            [] // gamepad index 3
+            ];
+            window.addEventListener("gamepadconnected", function (e) {
+              console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.", e.gamepad.index, e.gamepad.id, e.gamepad.buttons.length, e.gamepad.axes.length);
+              console.log(e.gamepad);
+              _this.getGamepads();
+            });
+            window.addEventListener("gamepaddisconnected", function (e) {
+              console.log('Gamepad disconnected: ', e);
+              _this.getGamepads();
+            });
+
+            // window.addEventListener('gamepadbuttondown', (e)=>{
+            //   console.log('gamepad button down: ',e);
+            // });
+            //
+            // window.addEventListener('gamepadbuttonup', (e)=>{
+            //   console.log('gamepad button up: ',e);
+            // });
+          }
+        }, {
+          key: 'getGamepads',
+          value: function getGamepads() {
+            var gps = navigator.getGamepads() || [];
+            var gp;
+            for (var i = 0; i < gps.length; i++) {
+              gp = gps[i];
+              if (gp) {
+                this.gamepads[gp.index] = gp;
+              }
+            }
+            return this.gamepads;
+          }
+        }, {
+          key: 'update',
+          value: function update() {
+            this._stepGamepads();
+          }
+        }, {
+          key: '_stepGamepads',
+          value: function _stepGamepads() {
+            var _this2 = this;
+
+            var gps = this.getGamepads();
+            var gp;
+            for (var i in gps) {
+              gp = gps[i]; // gamepad instance from api
+              if (gp) {
+
+                // for each gamepad that the api reads; poll the state of each button,
+                //  sending an event when pressed
+                gp.buttons.forEach(function (b, ix) {
+                  // get the last known state of the button
+                  var lastState = _this2.getLastState(i, ix);
+                  b.index = ix; // tell the button what it's index is
+                  b.lastState = lastState;
+
+                  if (b.pressed) {
+                    // if pressed, create a button event and set the buttons last known state
+                    _this2.gamepadButtonEvent(gp, b, true);
+                    _this2.setLastState(i, ix, true);
+                  } else {
+                    if (lastState) {
+                      // if the button is not pressed but its last state was pressed, create a 'button up' event
+                      if (lastState.pressed) {
+                        _this2.gamepadButtonEvent(gp, b, false);
+                      }
+                    }
+                    // set the buttons last known state for not pressed
+                    _this2.setLastState(i, ix, false);
+                  }
+                });
+
+                // do the same thing for each of the axis (analog sticks)
+                // loop through each and poll state
+                gp.axes.forEach(function (value, axis) {
+                  // get the deadZone associated with each axis
+                  var dz = _this2.getDeadZone(axis);
+                  // get the last known state for the axis
+                  var lastState = _this2.getLastAxisState(i, axis);
+
+                  // if the value of the axis is withing the bounds of the deadzone
+                  //  create an axis event
+                  if (value < -dz || value > dz) {
+                    _this2.gamepadAxisEvent(gp, axis, value, false);
+                  } else if (!lastState.zeroed) {
+                    _this2.gamepadAxisEvent(gp, axis, 0, true);
+                  }
+                });
+              } else {
+                console.log('no gamepad!', i);
+              }
+            }
+          }
+        }, {
+          key: 'getLastAxisState',
+          value: function getLastAxisState(gpIndex, axis) {
+            var b = this.lastAxisStates[gpIndex][axis] || { zeroed: true };
+            return b;
+          }
+        }, {
+          key: 'setLastAxisState',
+          value: function setLastAxisState(gpIndex, axis, state) {
+            this.lastAxisStates[gpIndex][axis] = { zeroed: state };
+          }
+        }, {
+          key: 'getDeadZone',
+          value: function getDeadZone(gamepadIndex) {
+            if (gamepadsConfig.hasOwnProperty(gamepadIndex) && gamepadsConfig[gamepadIndex].hasOwnProperty(deadZone)) {
+              return gamepadsConfig[gamepadIndex].deadZone;
+            }
+            return gamepadsAxisDeadZone;
+          }
+        }, {
+          key: 'setDeadZone',
+          value: function setDeadZone(deadZone, gamepadIndex) {
+            if (gamepadIndex !== null && gamepadIndex !== undefined) {
+              if (gamepadsConfig.hasOwnProperty(gamepadIndex)) {
+                gamepadsConfig[gamepadIndex].deadZone = deadZone;
+              } else {
+                gamepadsConfig[gamepadIndex] = { deadZone: deadZone };
+              }
+            } else {
+              gamepadsAxisDeadZone = deadZone;
+            }
+          }
+        }, {
+          key: 'getLastState',
+          value: function getLastState(i, ix) {
+            var b = this.lastButtonStates[i][ix];
+            return b;
+          }
+        }, {
+          key: 'setLastState',
+          value: function setLastState(i, ix, state) {
+            this.lastButtonStates[i][ix] = { pressed: state };
+          }
+        }, {
+          key: 'gamepadButtonEvent',
+          value: function gamepadButtonEvent(gamepad, button, down) {
+            button.id = gamepadMaps[gamepad.id].buttons[button.index];
+            if (button.id) {
+              this.inputController.dispatchEvent(this, this.onGamepadButtonEvent, new GamepadButtonEvent(gamepad, button, down));
+            } else {
+              console.log(arguments);
+            }
+          }
+        }, {
+          key: 'onGamepadButtonEvent',
+          value: function onGamepadButtonEvent(l, evt) {
+            if (!l || !l.enabled) {
+              return;
+            }
+            var func = l[evt.keyIdentifier];
+            if (!func) {
+              return;
+            }
+            if (l.gamepadIndex >= 0 && l.gamepadIndex !== evt.gamepadIndex) {
+              return;
+            }
+
+            var bndr = l.binder || l;
+            var b = func.call(bndr, evt.down, evt);
+            if (b === true) {
+              return true;
+            }
+            // check for if listener wants the only control
+            if (l.stopPropagation) {
+              return true;
+            }
+          }
+        }, {
+          key: '_onGamepadButtonEvent',
+          value: function _onGamepadButtonEvent(evt) {
+            var l;
+            var down = evt.down;
+
+            // if(this.config.logAllKeys){
+            //   console.log(evt.keyCode,evt.keyIdentifier);
+            // }
+            for (var i = listeners.length - 1; i >= 0; i--) {
+              l = listeners[i];
+              if (!l || !l.enabled) {
+                continue;
+              }
+              var func = l[evt.keyIdentifier];
+              if (!func) {
+                continue;
+              }
+              if (l.gamepadIndex >= 0 && l.gamepadIndex !== evt.gamepadIndex) {
+                continue;
+              }
+
+              var bndr = l.binder || l;
+              var b = func.call(bndr, down, evt);
+              if (b === true) {
+                return;
+              }
+              // check for if listener wants the only control
+              if (l.stopPropagation) {
+                break;
+              }
+            }
+            // if(this.config.logUnmappedKeys){
+            //   console.log(evt.keyCode,evt.keyIdentifier,evt.button.value, listeners.length===0?"No listeners":"");
+            // }
+          }
+        }, {
+          key: 'getGamepadMap',
+          value: function getGamepadMap(gamepadId) {
+            return gamepadMaps[gamepadId] || {};
+          }
+        }, {
+          key: 'gamepadAxisEvent',
+          value: function gamepadAxisEvent(gamepad, axisIndex, value, zeroed) {
+            this.setLastAxisState(gamepad.index, axisIndex, zeroed);
+            var gpMap = this.getGamepadMap(gamepad.id);
+            var axis = {};
+            axis.id = gpMap.axes[axisIndex];
+            axis.stick = gpMap.sticks[axis.id];
+            axis.index = axisIndex;
+            axis.value = value;
+            axis.zeroed = zeroed;
+
+            var evt = new GamepadAxisEvent(gamepad, axis);
+            evt.values = {};
+            if (axis.stick === 'leftStick') {
+              evt.values.x = gamepad.getValueByAxisId('lx');
+              evt.values.y = gamepad.getValueByAxisId('ly');
+            } else if (axis.stick === 'rightStick') {
+              evt.values.x = gamepad.getValueByAxisId('rx');
+              evt.values.y = gamepad.getValueByAxisId('ry');
+            }
+
+            this.onGamepadAxis(evt);
+          }
+        }, {
+          key: 'onGamepadAxis',
+          value: function onGamepadAxis(evt) {
+            var l;
+            for (var i = listeners.length - 1; i >= 0; i--) {
+              l = listeners[i];
+              if (!l) {
+                continue;
+              }
+
+              var func = l[evt.stick];
+              if (!func) {
+                continue;
+              }
+              // only fire for correct gamepadIndex
+              if (l.gamepadIndex >= 0 && l.gamepadIndex !== evt.gamepadIndex) {
+                continue;
+              }
+
+              var bndr = l.binder || l;
+              if (func.call(bndr, evt.values.x, evt.values.y, evt) === false) {
+                continue;
+              }
+              return;
+            }
+          }
+        }]);
+
+        return GamepadController;
+      }();
+
+      var GamepadButtonEvent = function GamepadButtonEvent(gamepad, button, down) {
+        _classCallCheck(this, GamepadButtonEvent);
+
+        this.gamepad = gamepad;
+        this.gamepadIndex = gamepad.index;
+        this.button = button;
+        this.down = down;
+        this.type = 'gamepadButtonEvent';
+        this.keyCode = button.index;
+        this.keyIdentifier = button.id;
+      };
+
+      var GamepadAxisEvent = function GamepadAxisEvent(gamepad, axis) {
+        _classCallCheck(this, GamepadAxisEvent);
+
+        this.gamepad = gamepad;
+        this.gamepadIndex = gamepad.index;
+        this.axis = axis;
+        this.stick = axis.stick;
+        this.keyCode = 200 + axis.index;
+        this.keyIdentifier = axis.id;
+        this.values = axis.values;
+        this.type = 'gamepadAxisEvent';
+      };
+
+      Gamepad.prototype.getValueByAxisId = function (axisId) {
+        var gp = gamepadMaps[this.id];
+        var ix = gp.axes.indexOf(axisId);
+        if (ix > -1) {
+          return this.axes[ix];
+        }
+        return;
+      };
+
+      /* harmony default export */exports["a"] = GamepadController;
 
       /***/
     }
