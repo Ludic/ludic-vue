@@ -7,13 +7,13 @@
 </template>
 
 <script>
-import {LudicApp} from 'ludic'
+import {app} from 'ludic'
 export default {
   name: "LudicAppComponent",
   props: {
     /* LudicApp properties */
     // optionally pass a sub-classed LudicApp class to be instantiated
-    app: {default: ()=>LudicApp},
+    app: {default: ()=>app},
     // optionally pass an update function to be used by the LudicApp
     update: {default: undefined},
     // optionally pass config options to be used by the LudicApp constructor
@@ -54,7 +54,7 @@ export default {
   mounted(){
     window.addEventListener('resize', this.onResize)
     try {
-      this._app = new this.app(this.cfg);
+      this._app = this.app(this.cfg);
       // this._app = Reflect.construct(this.app, [this.cfg])
     } catch (e) {
       console.error('e',e)
