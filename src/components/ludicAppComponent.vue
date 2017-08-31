@@ -1,8 +1,11 @@
 <template lang="html">
   <div class="ludic-app-container">
-    <slot>
-      <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
-    </slot>
+    <div class="ludic-canvas-wrapper">
+      <slot name="canvas">
+        <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
+      </slot>
+      <slot></slot>
+    </div>
   </div>
 </template>
 
@@ -14,6 +17,8 @@ export default {
     /* LudicApp properties */
     // optionally pass a sub-classed LudicApp class to be instantiated
     app: {default: ()=>app},
+    // optionally pass an array of plugins to use
+    plugins: {default: ()=>[]},
     // optionally pass an update function to be used by the LudicApp
     update: {default: undefined},
     // optionally pass config options to be used by the LudicApp constructor
@@ -53,9 +58,10 @@ export default {
   },
   mounted(){
     window.addEventListener('resize', this.onResize)
+    // TODO: load plugins
     try {
-      this._app = this.app(this.cfg);
-      // this._app = Reflect.construct(this.app, [this.cfg])
+      this._app = Reflect.construct(this.app, [this.cfg])
+      console.log(this._app)
     } catch (e) {
       console.error('e',e)
     }
