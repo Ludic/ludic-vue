@@ -1,16 +1,18 @@
 <template lang="html">
-  <div class="ludic-app-container">
-    <div class="ludic-canvas-wrapper">
-      <slot name="canvas">
-        <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
-      </slot>
-      <slot></slot>
-    </div>
+  <div class="ludic-app-container" :style="containerStyle">
+    <slot name="canvas">
+      <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
+    </slot>
+    <slot>
+      <ludic-ui :ui-component="uiLayer"></ludic-ui>
+    </slot>
   </div>
 </template>
 
 <script>
 import {app} from 'ludic'
+import UILayer from '../ui/components/UILayer'
+// instantiate a UILayer to get the componentDef
 export default {
   name: "LudicAppComponent",
   props: {
@@ -23,6 +25,8 @@ export default {
     update: {default: undefined},
     // optionally pass config options to be used by the LudicApp constructor
     config: {default: ()=>{}},
+    // optionally will add a ui layer (and install ludic-ui)
+    useLudicUi: {type: Boolean, default: false},
 
     /* ludic-app-container properties */
     // width and height of the canvas in the container
@@ -40,6 +44,8 @@ export default {
       },
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
+
+      uiLayer: null,
     }
   },
   computed: {
@@ -55,13 +61,30 @@ export default {
     c_height(){
       return this.fullWindow ? this.windowHeight : this.height
     },
+
+    containerStyle(){
+      return {
+        position: 'relative',
+        width: `${this.c_width}px`,
+        height: `${this.c_height}px`,
+      }
+    }
   },
   mounted(){
     window.addEventListener('resize', this.onResize)
     // TODO: load plugins
+    if(this.useLudicUi){
+      this.uiLayer = new UILayer()
+      // allow click events to pass through to the canvas
+      this.uiLayer.onMouseEvent = (e)=>{
+        this.app.canvas.el.dispatchEvent(new e.constructor(e.type, e))
+      }
+      this.app.use((_app)=>{
+        _app.$ui = this.uiLayer
+      })
+    }
     try {
       this._app = Reflect.construct(this.app, [this.cfg])
-      console.log(this._app)
     } catch (e) {
       console.error('e',e)
     }
@@ -80,16 +103,24 @@ export default {
 </script>
 
 <style lang="css">
-.ludic-canvas {
+.ludic-app-container {
   display: block;
-  margin: auto;
+  position: relative;
+}
+.ludic-canvas {
   outline: none;
-  border: 1px solid black;
+  border: none;
 }
 .ludic-canvas.full-window {
   position: fixed;
   height: 100vh;
   width: 100vw;
-  border: none;
+}
+.ludic-app-container > .ludic--ui-layer {
+  position: absolute !important;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
 }
 </style>

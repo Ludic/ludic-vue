@@ -1,19 +1,19 @@
-const RESTRICTED_PROPERTIES = ['$componentDef']
+const RESTRICTED_PROPERTIES = ['$componentDef', '$vm']
 
 // we want to hold the Vue component in a WeakMap to prevent possible memleaks
 const VM_MAPPER = new WeakMap()
+const PROXY_MAPPER = new WeakMap()
 
-class SuperClass {meta() {return {}}}
-
-export default class UIComponent extends SuperClass {
+export default class UIComponent{
   constructor() {
-    super()
     // return a Proxy wrapper for this object from the constructor to catch set/get
     // we use this to pass get/sets along to the Vue component that is merged with this object
-    return new Proxy(this, {
+    let proxy = new Proxy(this, {
       set(target, property, value, receiver){
         if(!RESTRICTED_PROPERTIES.includes(property) && target.$vm && target.$vm.$data.hasOwnProperty(property)){
           target.$vm[property] = value
+          // we want to set both the vm's data and our local data in the case that
+          // target[property] = value
           return true
         } else {
           target[property] = value
@@ -32,16 +32,15 @@ export default class UIComponent extends SuperClass {
         }
       }
     })
+    // before we proxy, we want to make sure we keep a reference to the non-proxied object
+    PROXY_MAPPER.set(proxy, this)
+    return proxy
   }
 
   /*
     component bound methods to be overridden
    */
 
-
-  meta(){
-    return {}
-  }
 
   /*
     vm bound methods to be overridden
@@ -88,18 +87,15 @@ export default class UIComponent extends SuperClass {
       beforeCreate(){
         VM_MAPPER.set(self, this)
       },
-      data(){
-        return {
-          children: [],
+      beforeDestroy(){
+        // copy vm data to local in case this object is re-created
+        for(let key in this.$data){
+          self[key] = this[key]
         }
       },
       render(...args){
         return self.render.call(this, self, ...args)
       }
     })
-  }
-
-  get $meta(){
-    return Object.assign(super.meta(), this.meta())
   }
 }
