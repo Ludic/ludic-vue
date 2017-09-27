@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import {app} from 'ludic'
+import {LudicApp} from 'ludic'
 import UILayer from '../ui/components/UILayer'
 // instantiate a UILayer to get the componentDef
 export default {
@@ -18,7 +18,7 @@ export default {
   props: {
     /* LudicApp properties */
     // optionally pass a sub-classed LudicApp class to be instantiated
-    app: {default: ()=>app},
+    app: {default: ()=>LudicApp},
     // optionally pass an array of plugins to use
     plugins: {default: ()=>[]},
     // optionally pass an update function to be used by the LudicApp
@@ -75,12 +75,12 @@ export default {
     // TODO: load plugins
     if(this.useLudicUi){
       this.uiLayer = new UILayer()
-      // allow click events to pass through to the canvas
-      this.uiLayer.onMouseEvent = (e)=>{
-        this.app.canvas.el.dispatchEvent(new e.constructor(e.type, e))
-      }
       this.app.use((_app)=>{
         _app.$ui = this.uiLayer
+        // allow click events to pass through to the canvas
+        _app.$ui.onMouseEvent = (e)=>{
+          _app.$canvas.el.dispatchEvent(new e.constructor(e.type, e))
+        }
       })
     }
     try {
