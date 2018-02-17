@@ -1,4 +1,5 @@
 import UIComponent from './UIComponent'
+import LudicComponent from './LudicComponent'
 
 let mouseEvents = function mouseEvents(binder){
   let f = function(){
@@ -13,23 +14,28 @@ export default class UILayer extends UIComponent {
 
   constructor(){
     super()
-    this.children = []
-    this.named = new Proxy({}, {
+    this.$children = []
+    this.__refs = {}
+    this.$refs = new Proxy(this.__refs, {
       set: (target, property, value, receiver)=>{
         if(this.$vm != null){
           this.$vm.$set(target, property, value)
+          console.log('set ref on vm', property, target, value)
+          // target[property] = value
         } else {
           target[property] = value
+          console.log('set ref on target', property, target, value)
         }
         return true
       }
     })
+
   }
 
-  data(self){
+  data(component){
     return {
-      children: self.children,
-      named: self.named,
+      children: component.$children,
+      refs: component.$refs,
     }
   }
 
@@ -39,7 +45,7 @@ export default class UILayer extends UIComponent {
     }
   }
 
-  render(self, h){
+  render(component, h){
     return h('div', {
       class: {
         'ludic--ui-layer': true,
@@ -49,25 +55,38 @@ export default class UILayer extends UIComponent {
         overflow: 'hidden',
       },
       on: {
-        ...(mouseEvents(self))
+        ...(mouseEvents(component))
       },
-    }, [...this.children, ...Object.values(this.named)].map((child)=>{
+    }, [...this.children, ...Object.values(this.refs)].map((child)=>{
+      console.log('on child map', child)
       if(child instanceof UIComponent){
         return h(child.$componentDef)
+      } else if(child.constructor.name === 'VueComponent') {
+        return h(child)
+      } else {
+        console.warn('UILayer', 'Unknown child instance type', child)
       }
       return child
     }))
   }
 
+  // /**
+  //  * Returns the combination of $children and $refs to represent everything that
+  //  * is going to be rendered as children of this component.
+  //  */
+  // get children(){
+  //   return [...this.$children, ...Object.values(this.$refs)]
+  // }
+
   // user methods
   push(comp){
-    this.children.push(comp)
+    this.$children.push(comp)
   }
   set(name, comp){
     if(this.$vm != null){
-      this.$vm.$set(this.named, name, comp)
+      this.$vm.$set(this.$refs, name, comp)
     } else {
-      this.named = Object.assign({}, this.named, {name: comp})
+      this.$refs = Object.assign({}, this.$refs, {name: comp})
     }
   }
 

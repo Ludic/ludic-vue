@@ -7,3 +7,4 @@ export default class LudicVue {
   }
 }
 export * from './ui/index.js'
+export * from './util/util.js'
