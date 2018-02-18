@@ -111,7 +111,6 @@ export default class UIComponent {
     // inside each of the Vue methods here, `this` refers to the vm
     return Vue.extend({
       data(){
-        console.log('> data', this, component)
         return component.data.call(this, component)
       },
       beforeCreate(){

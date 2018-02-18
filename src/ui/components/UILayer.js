@@ -20,11 +20,8 @@ export default class UILayer extends UIComponent {
       set: (target, property, value, receiver)=>{
         if(this.$vm != null){
           this.$vm.$set(target, property, value)
-          console.log('set ref on vm', property, target, value)
-          // target[property] = value
         } else {
           target[property] = value
-          console.log('set ref on target', property, target, value)
         }
         return true
       }
@@ -57,8 +54,8 @@ export default class UILayer extends UIComponent {
       on: {
         ...(mouseEvents(component))
       },
-    }, [...this.children, ...Object.values(this.refs)].map((child)=>{
-      console.log('on child map', child)
+    },
+    [...this.children, ...Object.values(this.refs)].filter(child => child != null).map((child)=>{
       if(child instanceof UIComponent){
         return h(child.$componentDef)
       } else if(child.constructor.name === 'VueComponent') {
@@ -67,7 +64,8 @@ export default class UILayer extends UIComponent {
         console.warn('UILayer', 'Unknown child instance type', child)
       }
       return child
-    }))
+    })
+    )
   }
 
   // /**

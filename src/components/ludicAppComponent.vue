@@ -4,7 +4,7 @@
       <canvas ref="canvas" id="ludic-canvas" class="ludic-canvas" :class="{'full-window': fullWindow}" :width="c_width" :height="c_height" :tabindex="tabindex" @resize="onCanvasResize()"></canvas>
     </slot>
     <slot>
-      <ludic-ui :ui-component="uiLayer"></ludic-ui>
+      <component v-if="useLudicUi && uiLayer" :is="uiLayer.$componentDef"></component>
     </slot>
   </div>
 </template>
@@ -45,7 +45,7 @@ export default {
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
 
-      uiLayer: null,
+      uiLayer: new UILayer(),
     }
   },
   computed: {
@@ -74,7 +74,6 @@ export default {
     window.addEventListener('resize', this.onResize)
     // TODO: load plugins
     if(this.useLudicUi){
-      this.uiLayer = new UILayer()
       this.app.use((_app)=>{
         _app.$ui = this.uiLayer
         // allow click events to pass through to the canvas
