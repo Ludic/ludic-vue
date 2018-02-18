@@ -1,6 +1,9 @@
+export function ludicEmit(name, arg){
+  this.$emit(`ludic:${name}`, arg)
+}
 export function ludicMethod(name, cb){
   return function(...args){
-    this.$emit(`ludic:${name}`, [this, (cb && cb.call(null, ...args))])
+    ludicEmit(name, [this, (cb && cb.call(null, ...args))])
   }
 }
 export function method(name, cb){

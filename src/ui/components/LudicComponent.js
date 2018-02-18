@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import UIComponent from './UIComponent'
-import {ludicMethod} from '../../util/util'
+import {ludicMethod, ludicEmit} from '../../util/util'
 
 class LudicComponent {
   static extend(opts){
@@ -23,7 +23,10 @@ class LudicComponent {
             }
           }
         }
-      }]
+      }],
+      methods: {
+        $ludicEmit: ludicEmit,
+      },
     })
 
 
