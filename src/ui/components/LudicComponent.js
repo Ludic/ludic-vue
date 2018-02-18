@@ -29,7 +29,7 @@ class LudicComponent {
 
     return new Proxy(comp, {
       construct(target, args) {
-        return new UIComponent(target)
+        return new UIComponent(target, args)
       },
       get(target, property){
         return property == '$raw' ? comp : target[property]

@@ -5,10 +5,12 @@ const RESTRICTED_PROPERTIES = ['$componentDef', '$vm', '$refs']
 // we want to hold the Vue component in a WeakMap to prevent possible memleaks
 const VM_MAPPER = new WeakMap()
 const PROXY_MAPPER = new WeakMap()
+const ARGS_MAPPER = new WeakMap()
 
 export default class UIComponent {
-  constructor(_componentDef={}) {
+  constructor(_componentDef={}, componentArgs=[]) {
     let self = this
+    ARGS_MAPPER.set(this, componentArgs)
     this._componentDef = this._applyMixin(_componentDef)
     // return a Proxy wrapper for this object from the constructor to catch set/get
     // we use this to pass get/sets along to the Vue component that is merged with this object
@@ -114,6 +116,9 @@ export default class UIComponent {
         return component.data.call(this, component)
       },
       beforeCreate(){
+        // give this vue component the args given to it when instantiated
+        this.componentArgs = ARGS_MAPPER.get(component)
+        // create an association between this Vue component (vm) and the UIComponent
         VM_MAPPER.set(component, this)
         for(let event in component._eventProxy){
           this.$on(event, component._eventProxy[event])
