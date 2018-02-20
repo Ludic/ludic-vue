@@ -6,12 +6,13 @@ const RESTRICTED_PROPERTIES = ['$componentDef', '$vm', '$refs']
 const VM_MAPPER = new WeakMap()
 const PROXY_MAPPER = new WeakMap()
 const ARGS_MAPPER = new WeakMap()
+const COMPONENT_DEF_MAPPER = new WeakMap()
 
 export default class UIComponent {
-  constructor(_componentDef={}, componentArgs=[]) {
+  constructor(componentDef={}, componentArgs=[]) {
     let self = this
     ARGS_MAPPER.set(this, componentArgs)
-    this._componentDef = this._applyMixin(_componentDef)
+    COMPONENT_DEF_MAPPER.set(this, componentDef)
     // return a Proxy wrapper for this object from the constructor to catch set/get
     // we use this to pass get/sets along to the Vue component that is merged with this object
     let proxy = new Proxy(self, {
@@ -75,9 +76,9 @@ export default class UIComponent {
    * @param  {UIComponent} self the UIComponent since 'this' is bound to the vm here
    * @return {Object} reactive vm properties
    */
-  data(self){
-    return {}
-  }
+  // data(self){
+  //   return {}
+  // }
 
   /**
    * The vm's render function. use the 'h' or 'createElement' callback that is passed
@@ -86,8 +87,12 @@ export default class UIComponent {
    * @param  {[type]} h    also known as 'createElement' (https://vuejs.org/v2/guide/render-function.html#createElement-Arguments)
    * @return {[type]}      a VNode for this component
    */
-  render(self, h){
-    return h()
+  // render(self, h){
+  //   return h()
+  // }
+
+  options(componentDef){
+    return {}
   }
 
   /*
@@ -101,7 +106,7 @@ export default class UIComponent {
 
   get ['$componentDef'](){
     // return the same or create a new component definition
-    return this._componentDef || (this._componentDef = this._applyMixin({},this))
+    return this._componentDef || (this._componentDef = this._applyMixin(COMPONENT_DEF_MAPPER.get(this),this))
   }
 
   get $on(){
@@ -112,9 +117,6 @@ export default class UIComponent {
   _applyMixin(componentDef, component=this){
     // inside each of the Vue methods here, `this` refers to the vm
     return Vue.extend({
-      data(){
-        return component.data.call(this, component)
-      },
       beforeCreate(){
         // give this vue component the args given to it when instantiated
         this.componentArgs = ARGS_MAPPER.get(component)
@@ -130,9 +132,9 @@ export default class UIComponent {
           component[key] = this[key]
         }
       },
-      render(...args){
-        return component.render.call(this, component, ...args)
-      },
-    }).extend(componentDef)
+      // render(...args){
+      //   return component.render.call(this, component, ...args)
+      // },
+    }).extend(this.options(componentDef)).extend(componentDef)
   }
 }

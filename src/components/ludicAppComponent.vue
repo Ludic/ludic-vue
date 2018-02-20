@@ -11,7 +11,7 @@
 
 <script>
 import {LudicApp} from 'ludic'
-import UILayer from '../ui/components/UILayer'
+import {ludicInstall} from '../util/util'
 // instantiate a UILayer to get the componentDef
 export default {
   name: "LudicAppComponent",
@@ -45,7 +45,7 @@ export default {
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
 
-      uiLayer: new UILayer(),
+      uiLayer: null,
     }
   },
   computed: {
@@ -74,16 +74,11 @@ export default {
     window.addEventListener('resize', this.onResize)
     // TODO: load plugins
     if(this.useLudicUi){
-      this.app.use((_app)=>{
-        _app.$ui = this.uiLayer
-        // allow click events to pass through to the canvas
-        _app.$ui.onMouseEvent = (e)=>{
-          _app.$canvas.el.dispatchEvent(new e.constructor(e.type, e))
-        }
-      })
+      this.app.use(ludicInstall)
     }
     try {
       this._app = Reflect.construct(this.app, [this.cfg])
+      this.uiLayer = this._app.$ui
     } catch (e) {
       console.error('e',e)
     }

@@ -12,27 +12,78 @@ let mouseEvents = function mouseEvents(binder){
 
 export default class UILayer extends UIComponent {
 
-  constructor(){
+  constructor(app){
     super()
+    this.$app = app
     this.$children = []
-    this.__refs = {}
-    this.$refs = new Proxy(this.__refs, {
+    this.$refs = new Proxy({}, {
       set: (target, property, value, receiver)=>{
         if(this.$vm != null){
           this.$vm.$set(target, property, value)
+          return true
         } else {
           target[property] = value
+          return true
         }
-        return true
-      }
+        return false
+      },
+      deleteProperty: (target, property)=>{
+        if(this.$vm != null){
+          this.$vm.$delete(target, property)
+          return true
+        } else if(property in target){
+          delete target[property]
+          return true
+        }
+        return false
+      },
     })
 
   }
 
-  data(component){
+  options(componentDef){
+    let component = this
     return {
-      children: component.$children,
-      refs: component.$refs,
+      provide: {
+        // This provides the LudicApp as $app onto every child of this component.
+        '$app': component.$app,
+      },
+      data(){
+        return {
+          children: component.$children,
+          refs: component.$refs,
+        }
+      },
+      beforeCreate(){
+        // we dont want this to be reactive because changes on it will cause
+        // unwanted render cycles
+        // this.$app = component.$app
+      },
+      render(h){
+        return h('div', {
+          class: {
+            'ludic--ui-layer': true,
+          },
+          style: {
+            position: 'relative',
+            overflow: 'hidden',
+          },
+          on: {
+            ...(mouseEvents(component))
+          },
+        },
+        [...this.children, ...Object.values(this.refs)].filter(child => child != null).map((child)=>{
+          if(child instanceof UIComponent){
+            return h(child.$componentDef)
+          } else if(child.constructor.name === 'VueComponent') {
+            return h(child)
+          } else {
+            console.warn('UILayer', 'Unknown child instance type', child)
+          }
+          return child
+        })
+        )
+      }
     }
   }
 
@@ -41,33 +92,6 @@ export default class UILayer extends UIComponent {
       this.onMouseEvent(event)
     }
   }
-
-  render(component, h){
-    return h('div', {
-      class: {
-        'ludic--ui-layer': true,
-      },
-      style: {
-        position: 'relative',
-        overflow: 'hidden',
-      },
-      on: {
-        ...(mouseEvents(component))
-      },
-    },
-    [...this.children, ...Object.values(this.refs)].filter(child => child != null).map((child)=>{
-      if(child instanceof UIComponent){
-        return h(child.$componentDef)
-      } else if(child.constructor.name === 'VueComponent') {
-        return h(child)
-      } else {
-        console.warn('UILayer', 'Unknown child instance type', child)
-      }
-      return child
-    })
-    )
-  }
-
   // /**
   //  * Returns the combination of $children and $refs to represent everything that
   //  * is going to be rendered as children of this component.

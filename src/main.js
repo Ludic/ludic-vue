@@ -1,10 +1,9 @@
-import LudicAppComponent from './components/ludicAppComponent'
-import { LudicUI } from './ui'
+import UILayer from './ui/components/UILayer'
+import {ludicInstall, vueInstall} from './util/util'
 export default class LudicVue {
-  static install(Vue){
-    Vue.component('ludic-app', LudicAppComponent)
-    Vue.component('ludic-ui', LudicUI)
-  }
 }
+LudicVue.install = vueInstall
+LudicVue.plugin = ludicInstall
+
 export * from './ui/index.js'
 export * from './util/util.js'
