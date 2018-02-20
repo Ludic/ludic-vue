@@ -3,11 +3,11 @@ import UILayer from '../ui/components/UILayer'
 import { LudicUI } from '../ui/index'
 
 export function ludicEmit(name, arg){
-  this.$emit(`ludic:${name}`, arg)
+  this.$emit(`ludic:${name}`, [this, arg])
 }
 export function ludicMethod(name, cb){
   return function(...args){
-    ludicEmit(name, [this, (cb && cb.call(null, ...args))])
+    ludicEmit(name, (cb && cb.call(null, ...args)))
   }
 }
 export function method(name, cb){
