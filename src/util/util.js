@@ -56,6 +56,18 @@ export function mergeLudicInput(vm){
   }
 }
 
+export function destroyLudicInput(vm){
+  let {ludicInput} = vm.$options
+  if(typeof ludicInput === 'function'){
+    let ludicInputs = ludicInput.call(vm)
+    for(let inputKeyName in ludicInputs){
+      if(vm[inputKeyName] != null){
+        vm.$app.$input.removeInputListener(vm[inputKeyName])
+      }
+    }
+  }
+}
+
 export function ludicInstall(app){
   app.$ui = new UILayer(app)
   // allow click events to pass through to the canvas

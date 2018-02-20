@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import UIComponent from './UIComponent'
-import {ludicEmit, mergeOptions} from '../../util/util'
+import {ludicEmit, mergeOptions, destroyLudicInput} from '../../util/util'
 
 export default class LudicComponent {
   static extend(opts){
@@ -12,6 +12,9 @@ export default class LudicComponent {
       created(){
         // setup the ludicComponents and ludicMethods from $options
         mergeOptions(this)
+      },
+      beforeDestroy(){
+        destroyLudicInput(this)
       },
       methods: {
         $ludicEmit: ludicEmit,
