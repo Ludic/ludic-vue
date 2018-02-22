@@ -2,7 +2,7 @@ import UIComponent from './UIComponent'
 import LudicComponent from './LudicComponent'
 
 let mouseEvents = function mouseEvents(binder){
-  let f = function(){
+  let f = function(event){
     binder.$mouseEvent.call(binder, event)
   }
   let events = {}
