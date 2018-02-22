@@ -69,7 +69,11 @@ export function destroyLudicInput(vm){
 }
 
 export function ludicInstall(app){
-  app.$ui = new UILayer(app)
+  app.$ui = new UILayer({
+    style: {
+      position: 'absolute',
+    }
+  }, app)
   // allow click events to pass through to the canvas
   app.$ui.onMouseEvent = (e)=>{
     app.$canvas.el.dispatchEvent(new e.constructor(e.type, e))

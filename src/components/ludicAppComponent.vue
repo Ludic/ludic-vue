@@ -110,11 +110,11 @@ export default {
   height: 100vh;
   width: 100vw;
 }
-.ludic-app-container > .ludic--ui-layer {
+/* .ludic-app-container > .ludic--ui-layer {
   position: absolute !important;
   top: 0px;
   left: 0px;
   width: 100%;
   height: 100%;
-}
+} */
 </style>

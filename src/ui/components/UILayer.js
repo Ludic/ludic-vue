@@ -10,10 +10,34 @@ let mouseEvents = function mouseEvents(binder){
     .reduce((obj, event)=>((obj[event] = f) && obj), events)
 }
 
+const DEFAULTS = {
+  style: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    overflow: 'hidden',
+  }
+}
+
+let mergeObj = function mergeObj(obj1, obj2){
+  let merged = Object.assign({}, obj1)
+  for(let key in obj2){
+    if(typeof obj1[key] == 'object' && typeof obj2[key] == 'object'){
+      merged[key] = mergeObj(obj1[key], obj2[key])
+    } else {
+      merged[key] = obj2[key]
+    }
+  }
+  return merged
+}
+
 export default class UILayer extends UIComponent {
 
-  constructor(app){
+  constructor(props, app){
     super()
+    this.$props = mergeObj(DEFAULTS, props)
     this.$app = app
     this.$children = []
     this.$refs = new Proxy({}, {
@@ -54,19 +78,13 @@ export default class UILayer extends UIComponent {
           refs: component.$refs,
         }
       },
-      beforeCreate(){
-        // we dont want this to be reactive because changes on it will cause
-        // unwanted render cycles
-        // this.$app = component.$app
-      },
       render(h){
         return h('div', {
           class: {
             'ludic--ui-layer': true,
           },
           style: {
-            position: 'relative',
-            overflow: 'hidden',
+            ...component.$props.style
           },
           on: {
             ...(mouseEvents(component))
