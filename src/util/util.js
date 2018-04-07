@@ -7,7 +7,7 @@ export function ludicEmit(name, arg){
 }
 export function ludicMethod(name, cb){
   return function(...args){
-    ludicEmit(name, (cb && cb.call(null, ...args)))
+    ludicEmit.call(this, name, (cb && cb.call(null, ...args)))
   }
 }
 export function method(name, cb){
