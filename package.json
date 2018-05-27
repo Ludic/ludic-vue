@@ -1,5 +1,5 @@
 {
-  "name": "ludic-vue",
+  "name": "@ludic/ludic-vue",
   "version": "1.0.0",
   "description": "vue component for ludic",
   "main": "dist/ludic-vue.umd.js",
