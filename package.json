@@ -4,6 +4,7 @@
   "description": "vue component for ludic",
   "main": "dist/ludic-vue.umd.js",
   "module": "dist/ludic-vue.umd.js",
+  "types": "src/main.d.ts",
   "scripts": {
     "dev": "webpack --watch --config ./webpack.dev.config.js",
     "build": "webpack --config ./webpack.build.config.js",
@@ -16,7 +17,8 @@
   "author": "doman412",
   "license": "ISC",
   "peerDependencies": {
-    "vue": "^2.3.0"
+    "vue": "^2.3.0",
+    "@ludic/ludic": "^0.9.0"
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
