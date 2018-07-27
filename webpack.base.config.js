@@ -54,7 +54,9 @@ module.exports = {
     extensions: ['.js', '.vue', '.scss', '.json'],
   },
   externals : {
-    ludic: 'ludic',
+    ludic: {
+      commonjs: '@ludic/ludic',
+    },
     vue: 'vue',
   },
   devtool: '#source-map'
