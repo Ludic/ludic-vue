@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import {LudicApp} from 'ludic'
+import {LudicApp} from '@ludic/ludic'
 import {ludicInstall} from '../util/util'
 // instantiate a UILayer to get the componentDef
 export default {
